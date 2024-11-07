@@ -147,6 +147,12 @@ inputs:
     description: "Path to OpenAI / Swagger file within the repository (e.g: path/to/file.yml)"
     required: false
 
+  beta-cli:
+    description: "Used internally by statckspot to test CLI's beta version (default, stg, dev)."
+    required: false
+    type: string
+    default: default
+
 outputs:
   apply_tasks:
     description: "Post Plan Tasks"
@@ -216,6 +222,7 @@ runs:
         BRANCH: ${{ inputs.checkout-branch }}
         DYNAMIC_INPUTS: ${{ inputs.dynamic-inputs }}
         WORKDIR: ${{ inputs.workdir }}
+        BETA_CLI_ENVIRONMENT: ${{ inputs.beta-cli }}
 
     - name: Success - Runtime
       if: steps.orchestration.outcome == 'success'
