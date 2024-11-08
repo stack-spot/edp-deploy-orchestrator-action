@@ -1,0 +1,276 @@
+name: Runtime Deploy (Self Hosted)
+
+description: EDP Deploy Action for testing deploys
+
+inputs:
+  LEVEL_LOG:
+    description: "The runtime level log."
+    required: false
+    default: "info"
+
+  TFSTATE_BUCKET_NAME:
+    description: "The bucket for runtime inventory."
+    required: true
+
+  TFSTATE_BUCKET_REGION:
+    description: "The bucket region for runtime inventory."
+    required: false
+    default: "sa-east-1"
+
+  IAC_BUCKET_NAME:
+    description: "The bucket for runtime inventory."
+    required: true
+
+  IAC_BUCKET_REGION:
+    description: "The bucket region for runtime inventory."
+    required: false
+    default: "sa-east-1"
+
+  CONTAINER_IAC_VERSION:
+    description: "The container IaC version."
+    required: false
+    default: "stackspot/runtime-job-iac:latest"
+
+  CONTAINER_DEPLOY_VERSION:
+    description: "The container deploy version."
+    required: false
+    default: "stackspot/runtime-job-deploy:latest"
+
+  CONTAINER_DESTROY_VERSION:
+    description: "The container destroy version."
+    required: false
+    default: "stackspot/runtime-job-destroy:latest"
+
+  CONTAINER_UNIFIED_VERSION:
+    description: "The container unified version."
+    required: false
+    default: "stackspot/runtime-job-unified:latest"
+
+  DYNAMIC_INPUTS:
+    description: "The inputs stk."
+    required: false
+    default: ""
+
+  WORKSPACE:
+    description: "The slug of the workspace."
+    required: true
+
+  ENVIRONMENT:
+    description: "The environment."
+    required: true
+    default: ""
+
+  VERSION:
+    description: "The version."
+    required: true
+
+  TERRAFORM_PARALLELISM:
+    description: "Terraform parallelism ordem."
+    default: "10"
+    required: false
+
+  WORKDIR:
+    description: "Path to the directory where the .stk is located."
+    required: false
+    default: "./"
+
+  CHECKOUT_BRANCH:
+    description: "Whether or not checkout is enabled."
+    required: false
+    default: "false"
+
+  REPOSITORY_NAME:
+    description: "Git Repository Name."
+    required: true
+
+  PATH_TO_MOUNT:
+    description: "Path to mount inside the provisioning docker."
+    required: true
+
+  AWS_REGION:
+    description: "The IAM region that Self-Hosted will use to deploy infrastructure."
+    required: true
+    default: "sa-east-1"
+
+  AWS_IAM_ROLE:
+    description: "The AWS IAM role that Self-Hosted will use to deploy infrastructure."
+    required: false
+
+  AWS_ACCESS_KEY_ID:
+    description: "AWS ACCESS KEY ID from console that Self-Hosted will use to deploy infrastructure."
+    required: false
+
+  AWS_SECRET_ACCESS_KEY:
+    description: "AWS SECRET ACCESS KEY from console that Self-Hosted will use to deploy infrastructure."
+    required: false
+
+  AWS_SESSION_TOKEN:
+    description: "AWS SESSION TOKEN from console that Self-Hosted will use to deploy infrastructure."
+    required: false
+
+  STK_CLIENT_ID:
+    description: "The client identifier of the account."
+    required: true
+
+  STK_CLIENT_SECRET:
+    description: "The client secret of the account."
+    required: true
+
+  STK_REALM:
+    description: "The realm of the account."
+    required: true
+
+  FEATURES_TERRAFORM_MODULES:
+    description: "Terraform Modules."
+    required: false
+
+  TF_LOG_PROVIDER:
+    description: "Level tf log provider - info, debug, warn or trace."
+    required: false
+
+  BASE_PATH_OUTPUT:
+    description: "File name to save outputs: {plugin-alias}_{OUTPUT_FILE}."
+    required: false
+    default: outputs.json
+
+  LOCAL_EXEC_ENABLED:
+    description: "If Runtimes will allow execution of the local-exec command within terraform."
+    required: false
+    default: "false"
+
+  VERBOSE:
+    description: "Whether to show extra logs during execution. (e.g: true)."
+    required: false
+    default: "false"
+
+  OPEN_API_PATH:
+    description: "Path to OpenAI / Swagger file within the repository (e.g: path/to/file.yml)."
+    required: false
+
+  BETA_CLI:
+    description: "Used internally by StackSpot to test CLI's beta version (default, stg, dev)."
+    required: false
+    type: string
+    default: default
+
+outputs:
+  APPLY_TASKS:
+    description: "Post Plan Tasks."
+    value: ${{ steps.prepare_tasks.outputs.apply_tasks }}
+  RUN_ID:
+    description: "Run ID that identifies the deployment"
+    value: ${{ steps.orchestrations.outputs.run_id }}
+
+runs:
+  using: composite
+  steps:
+    - name: Validate AWS Credentials or IAM Role
+      id: validate-aws-credentials
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const iamRole = "${{ inputs.AWS_IAM_ROLE }}";
+          const accessKeyId = "${{ inputs.AWS_ACCESS_KEY_ID }}";
+          const secretAccessKey = "${{ inputs.AWS_SECRET_ACCESS_KEY }}";
+          const sessionToken = "${{ inputs.AWS_SESSION_TOKEN }}";
+
+          const isIamRoleProvided = !!iamRole;
+          const areAwsCredentialsProvided = !!(accessKeyId && secretAccessKey && sessionToken);
+
+          function errorSummary() {
+            core.summary.addRaw(":x: Validation Error: AWS credentials were not provided correctly", true)
+            core.summary.addRaw("Only one option is allowed:", true)
+            core.summary.addRaw("Either you provide only:", true)
+            core.summary.addList(["AWS_IAM_ROLE"], true)
+            core.summary.addRaw("Or you provide the following:", true)
+            core.summary.addList(['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN'], true)
+          }
+
+          if (isIamRoleProvided && areAwsCredentialsProvided) {
+            errorSummary()
+            core.setFailed("Only one option is allowed: either 'AWS_IAM_ROLE' or the combination of 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', and 'AWS_SESSION_TOKEN'.");
+          } else if (!isIamRoleProvided && !areAwsCredentialsProvided) {
+            errorSummary()
+            core.setFailed("You must provide either 'AWS_IAM_ROLE' or the combination of 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', and 'AWS_SESSION_TOKEN'.");
+          } else {
+            console.log(":white_check_mark: AWS Account Validation passed");
+          }
+
+    - name: Authentication + Get Tasks
+      id: orchestrations
+      uses: stack-spot/runtime-manager-action@v2.1
+      env:
+        LANG: C.UTF-8
+        LANGUAGE: C.UTF-8
+        LC_ALL: C.UTF-8
+        PYTHONIOENCODING: utf-8
+        HTTP_ENABLE_DEBUG: false
+      with:
+        CLIENT_ID: ${{ inputs.STK_CLIENT_ID }}
+        CLIENT_KEY: ${{ inputs.STK_CLIENT_SECRET }}
+        CLIENT_REALM: ${{ inputs.STK_REALM }}
+        WORKSPACE: ${{ inputs.WORKSPACE }}
+        ENVIRONMENT: ${{ inputs.ENVIRONMENT }}
+        VERSION_TAG: ${{ inputs.VERSION }}
+        TF_STATE_BUCKET_NAME: ${{ inputs.TFSTATE_BUCKET_NAME }}
+        TF_STATE_REGION: ${{ inputs.TFSTATE_BUCKET_REGION }}
+        IAC_BUCKET_NAME: ${{ inputs.IAC_BUCKET_NAME }}
+        IAC_REGION: ${{ inputs.IAC_BUCKET_REGION }}
+        VERBOSE: ${{ inputs.VERBOSE }}
+        OPEN_API_PATH: ${{ inputs.OPEN_API_PATH }}
+        BRANCH: ${{ inputs.CHECKOUT_BRANCH }}
+        DYNAMIC_INPUTS: ${{ inputs.DYNAMIC_INPUTS }}
+        WORKDIR: ${{ inputs.WORKDIR }}
+        BETA_CLI_ENVIRONMENT: ${{ inputs.BETA_CLI }}
+
+    - name: Fetch IaC and Plan Deployment Changes
+      id: prepare_tasks
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const deployData = "${{ steps.orchestrations.outputs.tasks }}".replaceAll("'", "\"")
+          const taskList = JSON.parse(deployData);
+
+          const prepareTasks = []
+          const applyTasks = []
+
+          for (task of taskList) {
+            if (task.taskType.includes("IAC") || task.taskType.includes("PLAN")) {
+              prepareTasks.push(task)
+            } else {
+              applyTasks.push(task)
+            }
+          }
+
+          core.setOutput('prepare_tasks', JSON.stringify(prepareTasks).replaceAll("\"", "'"))
+          core.setOutput('apply_tasks', JSON.stringify(applyTasks).replaceAll("\"", "'"))
+
+    - name: Build IaC and Plan Changes
+      id: build_iac_and_plan
+      uses: stack-spot/runtime-tasks-action@feat/plan
+      if: steps.orchestrations.outputs.run_id != '' && steps.prepare_tasks.outputs.prepare_tasks != ''
+      with:
+        RUN_ID: ${{ steps.orchestrations.outputs.run_id }}
+        TASK_LIST: ${{ steps.prepare_tasks.outputs.prepare_tasks }}
+        TF_PARALLELISM: ${{ inputs.TERRAFORM_PARALLELISM }}
+        FEATURES_LEVEL_LOG: ${{ inputs.LEVEL_LOG }}
+        AWS_REGION: ${{ inputs.AWS_REGION }}
+        REPOSITORY_NAME: ${{ inputs.REPOSITORY_NAME }}
+        PATH_TO_MOUNT: ${{ inputs.PATH_TO_MOUNT }}
+        CHECKOUT_BRANCH: ${{ inputs.CHECKOUT_BRANCH }}
+        BASE_PATH_OUTPUT: ${{ inputs.BASE_PATH_OUTPUT }}
+        LOCALEXEC_ENABLED: ${{ inputs.LOCAL_EXEC_ENABLED }}
+        TF_LOG_PROVIDER: ${{ inputs.TF_LOG_PROVIDER }}
+        AWS_ROLE_ARN: ${{ inputs.AWS_IAM_ROLE }}
+        AWS_ACCESS_KEY_ID: ${{ inputs.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.AWS_SECRET_ACCESS_KEY }}
+        AWS_SESSION_TOKEN: ${{ inputs.AWS_SESSION_TOKEN }}
+        CONTAINER_URL_IAC: ${{ inputs.CONTAINER_IAC_VERSION }}
+        CONTAINER_URL_DEPLOY: ${{ inputs.CONTAINER_DEPLOY_VERSION }}
+        CONTAINER_URL_DESTROY: ${{ inputs.CONTAINER_DESTROY_VERSION }}
+        CONTAINER_URL_UNIFIED: ${{ inputs.CONTAINER_UNIFIED_VERSION }}
+        FEATURES_TERRAFORM_MODULES: ${{ inputs.FEATURES_TERRAFORM_MODULES }}
+        CLIENT_ID: ${{ inputs.STK_CLIENT_ID }}
+        CLIENT_KEY: ${{ inputs.STK_CLIENT_SECRET }}
+        CLIENT_REALM: ${{ inputs.STK_REALM }}
+        BETA_CLI_ENVIRONMENT: ${{ inputs.BETA_CLI }}
