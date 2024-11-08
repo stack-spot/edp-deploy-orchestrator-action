@@ -4,57 +4,48 @@ This Action allow users of EDP Deploy (Formerly Runtimes) to deploy infrastructu
 This GitHub Action is designed to facilitate the deployment of infrastructure using a self-hosted runtime. It supports both AWS IAM roles and AWS access keys for authentication, and it orchestrates the deployment of infrastructure using Terraform.
 
 ### Requirements
-To get the account keys (`CLIENT_ID`, `CLIENT_KEY` and `CLIENT_REALM`), please login using a **ADMIN** user on the [StackSpot Portal](https:#stackspot.com), and generate new keys at [Access Token](https:#stackspot.com/en/settings/access-token).
 
-## Inputs
+To use this action, you will need the following:
 
-| Name                        | Description                                                                 | Required | Default                                  |
-|-----------------------------|-----------------------------------------------------------------------------|----------|------------------------------------------|
-| `level-log`                 | The runtime log level.                                                      | No       | `info`                                   |
-| `tfstate-bucket-name`       | The bucket for runtime inventory.                                           | Yes      | N/A                                      |
-| `tfstate-bucket-region`     | The region of the bucket for runtime inventory.                             | No       | `sa-east-1`                              |
-| `iac-bucket-name`           | The bucket for storing IaC (Infrastructure as Code) files.                  | Yes      | N/A                                      |
-| `iac-bucket-region`         | The region of the bucket for IaC files.                                     | No       | `sa-east-1`                              |
-| `container-iac-version`     | The container version for IaC tasks.                                        | No       | `stackspot/runtime-job-iac:latest`       |
-| `container-deploy-version`  | The container version for deployment tasks.                                 | No       | `stackspot/runtime-job-deploy:latest`    |
-| `container-destroy-version` | The container version for destroy tasks.                                    | No       | `stackspot/runtime-job-destroy:latest`   |
-| `container-unified-version` | The container version for unified tasks.                                    | No       | `stackspot/runtime-job-unified:latest`   |
-| `dynamic-inputs`            | Dynamic inputs for the action.                                              | No       | `""`                                     |
-| `workspace`                 | The slug of the workspace.                                                  | Yes      | N/A                                      |
-| `environment`               | The environment for the deployment.                                         | Yes      | `""`                                     |
-| `version`                   | The version of the deployment.                                              | Yes      | N/A                                      |
-| `terraform-parallelism`     | The parallelism level for Terraform.                                        | No       | `10`                                     |
-| `workdir`                   | The path to the directory where the `.stk` is located.                      | No       | `./`                                     |
-| `checkout-branch`           | Whether or not to enable branch checkout.                                   | No       | `false`                                  |
-| `repository-name`           | The name of the Git repository.                                             | Yes      | N/A                                      |
-| `path-to-mount`             | The path to mount inside the provisioning Docker container.                 | Yes      | N/A                                      |
-| `aws-iam-role`              | The AWS IAM role to use for deploying infrastructure.                       | No       | N/A                                      |
-| `aws-iam-account-region`    | The AWS IAM account region.                                                 | No       | `sa-east-1`                              |
-| `aws-access-key-id`         | The AWS access key ID for deploying infrastructure.                         | No       | N/A                                      |
-| `aws-secret-access-key`     | The AWS secret access key for deploying infrastructure.                     | No       | N/A                                      |
-| `aws-session-token`         | The AWS session token for deploying infrastructure.                         | No       | N/A                                      |
-| `stk-client-id`             | The client identifier of the account.                                       | Yes      | N/A                                      |
-| `stk-client-secret`         | The client secret of the account.                                           | Yes      | N/A                                      |
-| `stk-realm`                 | The realm of the account.                                                   | Yes      | N/A                                      |
-| `features-terraform-modules`| Terraform modules to be used.                                               | No       | N/A                                      |
-| `tf-log-provider`           | The log level for Terraform (info, debug, warn, trace).                     | No       | N/A                                      |
-| `base-path-output`          | The file name to save outputs.                                              | No       | `outputs.json`                           |
-| `local-exec-enabled`        | Whether to allow execution of the `local-exec` command within Terraform.    | No       | `false`                                  |
-| `verbose`                   | Whether to show extra logs during execution.                                | No       | `false`                                  |
-| `open-api-path`             | The path to the OpenAPI/Swagger file within the repository.                 | No       | N/A                                      |
+1. **StackSpot Account**: 
+   - You must have a StackSpot account with access to the EDP Deploy (formerly Runtimes) service.
+   - Obtain the following credentials from the StackSpot Portal:
+     - `CLIENT_ID`
+     - `CLIENT_KEY`
+     - `CLIENT_REALM`
+   - These credentials can be generated by logging in as an **ADMIN** user on the [StackSpot Portal](https://stackspot.com) and navigating to the [Access Token](https://stackspot.com/en/settings/access-token) section.
 
-## Outputs
+2. **AWS Credentials**:
+   - You must provide either:
+     - **AWS IAM Role**: Use the `aws-iam-role` input to specify the IAM role ARN so we can assume this role.
+     - **AWS Access Keys**: Use the `aws-access-key-id`, `aws-secret-access-key`, and `aws-session-token` inputs to provide AWS access credentials.
+   - **Important**: You must provide either the IAM role or the access keys, but not both. If both are provided, the action will fail.
 
-| Name           | Description               |
-|----------------|---------------------------|
-| `apply_tasks`  | Post-plan tasks.           |
-| `run_id`       | The ID of the current run. |
+3. **GitHub Secrets**:
+   - Store sensitive information such as `CLIENT_ID`, `CLIENT_KEY`, `CLIENT_REALM`, and AWS credentials (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`, or `AWS_ROLE_ARN`) as GitHub Secrets to ensure security.
+
+4. **S3 Buckets**:
+   - You will need two S3 buckets:
+     - **tfstate-bucket-name**: For storing Terraform state files.
+     - **iac-bucket-name**: For storing Infrastructure as Code (IaC) files and .tfplan files.
+     - These buckets could be the same.
+   - Ensure that these buckets are created and accessible in the specified AWS region, by the specified runner.
+
+5. **Terraform**:
+   - This action orchestrates infrastructure deployment using Terraform. Ensure that your infrastructure code is compatible with Terraform and that the necessary Terraform modules are available.
+
+6. **GitHub Runner**:
+   - The action requires a GitHub runner that has access to your cloud account (AWS) and can execute the necessary Terraform commands.
 
 ## Usage
 
 Here is an example of how to use this action in your GitHub workflow:
 
-**NOTE: This action should NOT be used on its own, its supposed to be used along with [stack-spot/runtime-tasks-action](https:#github.com/stack-spot/runtime-tasks-action) and [stack-spot/runtime-cancel-run-action](https:#github.com/stack-spot/runtime-cancel-run-action) as the example below shows**
+> **⚠️ Important Note: This action should NOT be used on its own.**  
+>  It is designed to work in conjunction with the following actions:  
+> - [stack-spot/runtime-tasks-action](https://github.com/stack-spot/runtime-tasks-action)  
+> - [stack-spot/runtime-cancel-run-action](https://github.com/stack-spot/runtime-cancel-run-action)  
+> Please refer to the example below to see how these actions are used together.
 
 ```yaml
 name: Deploy Infrastructure
@@ -68,8 +59,8 @@ jobs:
   orquestrate_and_plan:
     runs-on: ubuntu-latest # Here you should use a runner that can access your cloud account
     outputs: 
-        apply_tasks: ${{ steps.orquestration_and_plan.outputs.apply_tasks }}
-        run_id: ${{ steps.orquestration_and_plan.outputs.run_id }}
+        apply_tasks: ${{ steps.orchestration_and_plan.outputs.apply_tasks }}
+        run_id: ${{ steps.orchestration_and_plan.outputs.run_id }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -78,22 +69,38 @@ jobs:
         uses: stackspot/edp-deploy-orchestration-action@v1
         id: orquestration_and_plan
         with:
-            tfstate-bucket-name: "my-tfstate-bucket"
-            tfstate-bucket-region: sa-east-1
-            iac-bucket-name: "my-iac-bucket"
-            iac-bucket-region: sa-east-1
-            workspace: "my-workspace"
-            environment: "production"
-            version: "v1.0.0"
-            repository-name: ${{ github.event.repository.name }}
-            path-to-mount: /home/runner/_work/${{ github.event.repository.name }}/${{ github.event.repository.name }}
-            stk-client-id: ${{ secrets.STK_CLIENT_ID }}
-            stk-client-secret: ${{ secrets.STK_CLIENT_SECRET }}
-            stk-realm: ${{ secrets.STK_REALM }}
-            aws-iam-role: ${{ secrets.AWS_ROLE_ARN }}
-            aws-iam-account-region: sa-east-1
+            TFSTATE_BUCKET_NAME: "my-tfstate-bucket"
+            TFSTATE_BUCKET_REGION: sa-east-1
+            IAC_BUCKET_NAME: "my-iac-bucket"
+            IAC_BUCKET_REGION: sa-east-1
+            WORKSPACE: "my-workspace"
+            ENVIRONMENT: "production"
+            VERSION: "v1.0.0"
+            REPOSITORY_NAME: ${{ github.event.repository.name }}
+            PATH_TO_MOUNT: /home/runner/_work/${{ github.event.repository.name }}/${{ github.event.repository.name }}
+            WORKDIR: /path/to/.stk # In case your repo has an .stk not on the repository root folder
+            STK_CLIENT_ID: ${{ secrets.STK_CLIENT_ID }}
+            STK_CLIENT_SECRET: ${{ secrets.STK_CLIENT_SECRET }}
+            STK_REALM: ${{ secrets.STK_REALM }}
+            AWS_IAM_ROLE: ${{ secrets.AWS_ROLE_ARN }}
+            AWS_REGION: sa-east-1          
+            FEATURES_TERRAFORM_MODULES: >-
+              [
+                  {
+                    "sourceType": "gitHttps",
+                    "path": "github.com/stack-spot",
+                    "private":  true,
+                    "app": "app",
+                    "token": "token"
+                  },
+                  {
+                    "sourceType": "terraformRegistry",
+                    "path": "hashicorp/stack-spot", 
+                    "private":  false
+                  }
+              ]
 
-  plan-approve-and-apply:
+  plan_approve_and_apply:
     name: Deploy
     needs: [orquestrate_and_plan]
     runs-on: ubuntu-latest # Here you should use a runner that can access your cloud account
@@ -131,7 +138,7 @@ jobs:
 
   cancel: # in case something in your pipeline breaks, or someone cancels it mid deployment, its required to run this action in order to let Stackspot know that an error has ocurred and not block next deployments
     runs-on: ubuntu-latest # Here you should use a runner that can access your cloud account
-    needs: [orquestrate_and_plan, plan-approve-and-apply]
+    needs: [orquestrate_and_plan, plan_approve_and_apply]
     if: ${{ always() && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) }} 
     steps:
       - name: Cancel run
@@ -146,6 +153,50 @@ jobs:
 
 ```
 
+
+## Inputs
+| Name                        | Description                                                                 | Required | Default                                  | Secret is Recommended |
+|-----------------------------|-----------------------------------------------------------------------------|----------|------------------------------------------|-----------------------|
+| `LEVEL_LOG`                 | The runtime log level.                                                      | No       | `info`                                   | No                    |
+| `TFSTATE_BUCKET_NAME`       | The bucket for runtime inventory.                                           | Yes      | N/A                                      | No                    |
+| `TFSTATE_BUCKET_REGION`     | The region of the bucket for runtime inventory.                             | No       | `sa-east-1`                              | No                    |
+| `IAC_BUCKET_NAME`           | The bucket for storing IaC (Infrastructure as Code) files.                  | Yes      | N/A                                      | No                    |
+| `IAC_BUCKET_REGION`         | The region of the bucket for IaC files.                                     | No       | `sa-east-1`                              | No                    |
+| `CONTAINER_IAC_VERSION`     | The container version for IaC tasks.                                        | No       | `stackspot/runtime-job-iac:latest`       | No                    |
+| `CONTAINER_DEPLOY_VERSION`  | The container version for deployment tasks.                                 | No       | `stackspot/runtime-job-deploy:latest`    | No                    |
+| `CONTAINER_DESTROY_VERSION` | The container version for destroy tasks.                                    | No       | `stackspot/runtime-job-destroy:latest`   | No                    |
+| `CONTAINER_UNIFIED_VERSION` | The container version for unified tasks.                                    | No       | `stackspot/runtime-job-unified:latest`   | No                    |
+| `DYNAMIC_INPUTS`            | Dynamic inputs for the action.                                              | No       | `""`                                     | No                    |
+| `WORKSPACE`                 | The slug of the workspace.                                                  | Yes      | N/A                                      | No                    |
+| `ENVIRONMENT`               | The environment for the deployment.                                         | Yes      | `""`                                     | No                    |
+| `VERSION`                   | The version of the deployment.                                              | Yes      | N/A                                      | No                    |
+| `TERRAFORM_PARALLELISM`     | The parallelism level for Terraform.                                        | No       | `10`                                     | No                    |
+| `WORKDIR`                   | The path to the directory where the `.stk` is located.                      | No       | `./`                                     | No                    |
+| `CHECKOUT_BRANCH`           | Whether or not to enable branch checkout.                                   | No       | `false`                                  | No                    |
+| `REPOSITORY_NAME`           | The name of the Git repository.                                             | Yes      | N/A                                      | No                    |
+| `PATH_TO_MOUNT`             | The path to mount inside the provisioning Docker container.                 | Yes      | N/A                                      | No                    |
+| `AWS_REGION`                | The AWS where infrastructure will be deployed.                              | Yes      | `sa-east-1`                              | No                    |
+| `AWS_IAM_ROLE`              | The AWS IAM role to use for deploying infrastructure.                       | No       | N/A                                      | Yes                   |
+| `AWS_ACCESS_KEY_ID`         | The AWS access key ID for deploying infrastructure.                         | No       | N/A                                      | Yes                   |
+| `AWS_SECRET_ACCESS_KEY`     | The AWS secret access key for deploying infrastructure.                     | No       | N/A                                      | Yes                   |
+| `AWS_SESSION_TOKEN`         | The AWS session token for deploying infrastructure.                         | No       | N/A                                      | Yes                   |
+| `STK_CLIENT_ID`             | The client identifier of the account.                                       | Yes      | N/A                                      | Yes                   |
+| `STK_CLIENT_SECRET`         | The client secret of the account.                                           | Yes      | N/A                                      | Yes                   |
+| `STK_REALM`                 | The realm of the account.                                                   | Yes      | N/A                                      | No                    |
+| `FEATURES_TERRAFORM_MODULES`| Terraform modules to be used.                                               | No       | N/A                                      | No                    |
+| `TF_LOG_PROVIDER`           | The log level for Terraform (info, debug, warn, trace).                     | No       | N/A                                      | No                    |
+| `BASE_PATH_OUTPUT`          | The file name to save outputs.                                              | No       | `outputs.json`                           | No                    |
+| `LOCAL_EXEC_ENABLED`        | Whether to allow execution of the `local-exec` command within Terraform.    | No       | `false`                                  | No                    |
+| `VERBOSE`                   | Whether to show extra logs during execution.                                | No       | `false`                                  | No                    |
+| `OPEN_API_PATH`             | The path to the OpenAPI/Swagger file within the repository.                 | No       | N/A                                      | No                    |
+
+## Outputs
+| Name          | Description                |
+|---------------|----------------------------|
+| `APPLY_TASKS` | Post-plan tasks.           |
+| `RUN_ID`      | The ID of the current run. |
+
+
 ### AWS Authentication
 This action supports two methods of AWS authentication:
 
@@ -159,20 +210,19 @@ Note: You must provide either the IAM role or the access keys, but not both. If 
 - name: Deploy Infrastructure with AWS Access Keys
   uses: stackspot/edp-deploy-orchestration-action@v1
   with:
-      # aws-iam-role: ${{ secrets.AWS_ROLE_ARN }}
-      aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-      aws-iam-account-region: sa-east-1
-
-``` 
+      # AWS_IAM_ROLE: ${{ secrets.AWS_ROLE_ARN }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+      AWS_REGION: sa-east-1
+```
 
 
 ### Complex Inputs
 
-#### `checkout-branch`
+#### `CHECKOUT_BRANCH`
 
-When the input `checkout-branch` is used, within the IAC step of the tasks, the repository will be cloned within the `iac.zip` with the following structure, in case repository files are necessary within terraform. it works in tandem with `path_to_mount` input, which should point to your repository after checkout, the value we indicate using for `path_to_mount` is `/home/runner/_work/${{ github.event.repository.name }}/${{ github.event.repository.name }}`, so terraform has access to the files, but you can change this however you wish.
+When the input `CHECKOUT_BRANCH` is used, within the IAC step of the tasks, the repository will be cloned within the `iac.zip` with the following structure, in case repository files are necessary within terraform. it works in tandem with `PATH_TO_MOUNT` input, which should point to your repository after checkout, the value we indicate using for `PATH_TO_MOUNT` is `/home/runner/_work/${{ github.event.repository.name }}/${{ github.event.repository.name }}`, so terraform has access to the files, but you can change this however you wish.
 
 _**Note**: the contents of the branch input don't really matter, the branch cloned will be the branch used to dispatch the workflow as long as it is not empty_
 
@@ -190,13 +240,13 @@ _**Note**: the contents of the branch input don't really matter, the branch clon
 └── ... {templates-deploy}
 ```
 
-#### `dynamic-inputs`
+#### `DYNAMIC_INPUTS`
 
-When the input `dynamic-inputs` is used, the flags passes in these inputs will be added to every plugin applied as their input, and could be used by Jinja engine to modify the IaC file created
+When the input `DYNAMIC_INPUTS` is used, the flags passes in these inputs will be added to every plugin applied as their input, and could be used by Jinja engine to modify the IaC file created
 
 **e.g:**
 
-`dynamic-inputs = --app_repository="https:#github.com/stack-spot/edp-deploy-orchestrator-action"`
+`DYNAMIC_INPUTS = --app_repository="https:#github.com/stack-spot/edp-deploy-orchestrator-action"`
 
 _main.tf_
 ```jinja
@@ -207,21 +257,21 @@ _main.tf_
 {% endif %}
 ```
 
-#### `features-terraform-modules`
+#### `FEATURES_TERRAFORM_MODULES`
 
-When `features-terraform-modules` is used, the application will allow the modules provided in this inputs to be executed. This is a security measurement to only allow trusted modules to be used.
+When `FEATURES_TERRAFORM_MODULES` is used, the application will allow the modules provided in this inputs to be executed. This is a security measurement to only allow trusted modules to be used.
 
 It should follow this structure:
 
 ```yaml
-features-terraform-modules: >-
+FEATURES_TERRAFORM_MODULES: >-
     [
         {
             "sourceType": "gitHttps",
             "path": "github.com/stack-spot", # Allows all repositories on stack-spot org
             "private": true,
             "app": "app", # Substitute with appName
-            "token": "token" # Substitute with github access token
+            "token": "token" # Substitute with GitHub access token
         },
         {
             "sourceType": "terraformRegistry",
