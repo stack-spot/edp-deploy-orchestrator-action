@@ -247,7 +247,7 @@ runs:
 
     - name: Build IaC and Plan Changes
       id: build_iac_and_plan
-      uses: stack-spot/runtime-tasks-action@feat/plan
+      uses: stack-spot/runtime-tasks-action@v2
       if: steps.orchestrations.outputs.run_id != '' && steps.prepare_tasks.outputs.prepare_tasks != ''
       with:
         RUN_ID: ${{ steps.orchestrations.outputs.run_id }}
