@@ -234,10 +234,20 @@ runs:
           const prepareTasks = []
           const applyTasks = []
 
-          for (task of taskList) {
-            if (task.taskType.includes("IAC") || task.taskType.includes("PLAN")) {
-              prepareTasks.push(task)
-            } else {
+          const containsPlan = taskList.any((task) => {
+            return task.taskType.includes("PLAN")
+          })
+
+          if (containsPlan) {
+            for (task of taskList) {
+              if (task.taskType.includes("IAC") || task.taskType.includes("PLAN")) {
+                prepareTasks.push(task)
+              } else {
+                applyTasks.push(task)
+              }
+            }
+          } else {
+            for (task of taskList) {
               applyTasks.push(task)
             }
           }
