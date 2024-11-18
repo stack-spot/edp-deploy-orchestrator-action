@@ -234,7 +234,7 @@ runs:
           const prepareTasks = []
           const applyTasks = []
 
-          const containsPlan = taskList.any((task) => {
+          const containsPlan = taskList.some((task) => {
             return task.taskType.includes("PLAN")
           })
 
