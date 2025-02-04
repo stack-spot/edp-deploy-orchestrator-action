@@ -164,123 +164,123 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Validate AWS Credentials or IAM Role
-      id: validate-aws-credentials
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const iamRole = "${{ inputs.AWS_IAM_ROLE }}";
-          const accessKeyId = "${{ inputs.AWS_ACCESS_KEY_ID }}";
-          const secretAccessKey = "${{ inputs.AWS_SECRET_ACCESS_KEY }}";
-          const sessionToken = "${{ inputs.AWS_SESSION_TOKEN }}";
+  - name: Validate AWS Credentials or IAM Role
+    id: validate-aws-credentials
+    uses: actions/github-script@v7
+    with:
+      script: |
+        const iamRole = "${{ inputs.AWS_IAM_ROLE }}";
+        const accessKeyId = "${{ inputs.AWS_ACCESS_KEY_ID }}";
+        const secretAccessKey = "${{ inputs.AWS_SECRET_ACCESS_KEY }}";
+        const sessionToken = "${{ inputs.AWS_SESSION_TOKEN }}";
 
-          const isIamRoleProvided = !!iamRole;
-          const areAwsCredentialsProvided = !!(accessKeyId && secretAccessKey && sessionToken);
+        const isIamRoleProvided = !!iamRole;
+        const areAwsCredentialsProvided = !!(accessKeyId && secretAccessKey && sessionToken);
 
-          function errorSummary() {
-            core.summary.addRaw(":x: Validation Error: AWS credentials were not provided correctly", true)
-            core.summary.addRaw("Only one option is allowed:", true)
-            core.summary.addRaw("Either you provide only:", true)
-            core.summary.addList(["AWS_IAM_ROLE"], true)
-            core.summary.addRaw("Or you provide the following:", true)
-            core.summary.addList(['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN'], true)
-          }
+        function errorSummary() {
+          core.summary.addRaw(":x: Validation Error: AWS credentials were not provided correctly", true)
+          core.summary.addRaw("Only one option is allowed:", true)
+          core.summary.addRaw("Either you provide only:", true)
+          core.summary.addList(["AWS_IAM_ROLE"], true)
+          core.summary.addRaw("Or you provide the following:", true)
+          core.summary.addList(['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN'], true)
+        }
 
-          if (isIamRoleProvided && areAwsCredentialsProvided) {
-            errorSummary()
-            core.setFailed("Only one option is allowed: either 'AWS_IAM_ROLE' or the combination of 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', and 'AWS_SESSION_TOKEN'.");
-          } else if (!isIamRoleProvided && !areAwsCredentialsProvided) {
-            errorSummary()
-            core.setFailed("You must provide either 'AWS_IAM_ROLE' or the combination of 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', and 'AWS_SESSION_TOKEN'.");
-          } else {
-            console.log(":white_check_mark: AWS Account Validation passed");
-          }
+        if (isIamRoleProvided && areAwsCredentialsProvided) {
+          errorSummary()
+          core.setFailed("Only one option is allowed: either 'AWS_IAM_ROLE' or the combination of 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', and 'AWS_SESSION_TOKEN'.");
+        } else if (!isIamRoleProvided && !areAwsCredentialsProvided) {
+          errorSummary()
+          core.setFailed("You must provide either 'AWS_IAM_ROLE' or the combination of 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', and 'AWS_SESSION_TOKEN'.");
+        } else {
+          console.log(":white_check_mark: AWS Account Validation passed");
+        }
 
-    - name: Authentication + Get Tasks
-      id: orchestrations
-      uses: stack-spot/runtime-manager-action@v2.1
-      env:
-        LANG: C.UTF-8
-        LANGUAGE: C.UTF-8
-        LC_ALL: C.UTF-8
-        PYTHONIOENCODING: utf-8
-        HTTP_ENABLE_DEBUG: false
-      with:
-        CLIENT_ID: ${{ inputs.STK_CLIENT_ID }}
-        CLIENT_KEY: ${{ inputs.STK_CLIENT_SECRET }}
-        CLIENT_REALM: ${{ inputs.STK_REALM }}
-        WORKSPACE: ${{ inputs.WORKSPACE }}
-        ENVIRONMENT: ${{ inputs.ENVIRONMENT }}
-        VERSION_TAG: ${{ inputs.VERSION }}
-        TF_STATE_BUCKET_NAME: ${{ inputs.TFSTATE_BUCKET_NAME }}
-        TF_STATE_REGION: ${{ inputs.TFSTATE_BUCKET_REGION }}
-        IAC_BUCKET_NAME: ${{ inputs.IAC_BUCKET_NAME }}
-        IAC_REGION: ${{ inputs.IAC_BUCKET_REGION }}
-        VERBOSE: ${{ inputs.VERBOSE }}
-        OPEN_API_PATH: ${{ inputs.OPEN_API_PATH }}
-        BRANCH: ${{ inputs.CHECKOUT_BRANCH }}
-        DYNAMIC_INPUTS: ${{ inputs.DYNAMIC_INPUTS }}
-        WORKDIR: ${{ inputs.WORKDIR }}
-        BETA_CLI_ENVIRONMENT: ${{ inputs.BETA_CLI }}
+  - name: Authentication + Get Tasks
+    id: orchestrations
+    uses: stack-spot/runtime-manager-action@feat/remove-cli-action
+    env:
+      LANG: C.UTF-8
+      LANGUAGE: C.UTF-8
+      LC_ALL: C.UTF-8
+      PYTHONIOENCODING: utf-8
+      HTTP_ENABLE_DEBUG: false
+    with:
+      CLIENT_ID: ${{ inputs.STK_CLIENT_ID }}
+      CLIENT_KEY: ${{ inputs.STK_CLIENT_SECRET }}
+      CLIENT_REALM: ${{ inputs.STK_REALM }}
+      WORKSPACE: ${{ inputs.WORKSPACE }}
+      ENVIRONMENT: ${{ inputs.ENVIRONMENT }}
+      VERSION_TAG: ${{ inputs.VERSION }}
+      TF_STATE_BUCKET_NAME: ${{ inputs.TFSTATE_BUCKET_NAME }}
+      TF_STATE_REGION: ${{ inputs.TFSTATE_BUCKET_REGION }}
+      IAC_BUCKET_NAME: ${{ inputs.IAC_BUCKET_NAME }}
+      IAC_REGION: ${{ inputs.IAC_BUCKET_REGION }}
+      VERBOSE: ${{ inputs.VERBOSE }}
+      OPEN_API_PATH: ${{ inputs.OPEN_API_PATH }}
+      BRANCH: ${{ inputs.CHECKOUT_BRANCH }}
+      DYNAMIC_INPUTS: ${{ inputs.DYNAMIC_INPUTS }}
+      WORKDIR: ${{ inputs.WORKDIR }}
+      BETA_CLI_ENVIRONMENT: ${{ inputs.BETA_CLI }}
 
-    - name: Fetch IaC and Plan Deployment Changes
-      id: prepare_tasks
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const deployData = "${{ steps.orchestrations.outputs.tasks }}".replaceAll("'", "\"")
-          const taskList = JSON.parse(deployData);
+  - name: Fetch IaC and Plan Deployment Changes
+    id: prepare_tasks
+    uses: actions/github-script@v7
+    with:
+      script: |
+        const deployData = "${{ steps.orchestrations.outputs.tasks }}".replaceAll("'", "\"")
+        const taskList = JSON.parse(deployData);
 
-          const prepareTasks = []
-          const applyTasks = []
+        const prepareTasks = []
+        const applyTasks = []
 
-          const containsPlan = taskList.some((task) => {
-            return task.taskType.includes("PLAN")
-          })
+        const containsPlan = taskList.some((task) => {
+          return task.taskType.includes("PLAN")
+        })
 
-          if (containsPlan) {
-            for (task of taskList) {
-              if (task.taskType.includes("IAC") || task.taskType.includes("PLAN")) {
-                prepareTasks.push(task)
-              } else {
-                applyTasks.push(task)
-              }
-            }
-          } else {
-            for (task of taskList) {
+        if (containsPlan) {
+          for (task of taskList) {
+            if (task.taskType.includes("IAC") || task.taskType.includes("PLAN")) {
+              prepareTasks.push(task)
+            } else {
               applyTasks.push(task)
             }
           }
+        } else {
+          for (task of taskList) {
+            applyTasks.push(task)
+          }
+        }
 
-          core.setOutput('prepare_tasks', JSON.stringify(prepareTasks).replaceAll("\"", "'"))
-          core.setOutput('apply_tasks', JSON.stringify(applyTasks).replaceAll("\"", "'"))
+        core.setOutput('prepare_tasks', JSON.stringify(prepareTasks).replaceAll("\"", "'"))
+        core.setOutput('apply_tasks', JSON.stringify(applyTasks).replaceAll("\"", "'"))
 
-    - name: Build IaC and Plan Changes
-      id: build_iac_and_plan
-      uses: stack-spot/runtime-tasks-action@v2
-      if: steps.orchestrations.outputs.run_id != '' && steps.prepare_tasks.outputs.prepare_tasks != ''
-      with:
-        RUN_ID: ${{ steps.orchestrations.outputs.run_id }}
-        TASK_LIST: ${{ steps.prepare_tasks.outputs.prepare_tasks }}
-        TF_PARALLELISM: ${{ inputs.TERRAFORM_PARALLELISM }}
-        FEATURES_LEVEL_LOG: ${{ inputs.LEVEL_LOG }}
-        AWS_REGION: ${{ inputs.AWS_REGION }}
-        REPOSITORY_NAME: ${{ inputs.REPOSITORY_NAME }}
-        PATH_TO_MOUNT: ${{ inputs.PATH_TO_MOUNT }}
-        CHECKOUT_BRANCH: ${{ inputs.CHECKOUT_BRANCH }}
-        BASE_PATH_OUTPUT: ${{ inputs.BASE_PATH_OUTPUT }}
-        LOCALEXEC_ENABLED: ${{ inputs.LOCAL_EXEC_ENABLED }}
-        TF_LOG_PROVIDER: ${{ inputs.TF_LOG_PROVIDER }}
-        AWS_ROLE_ARN: ${{ inputs.AWS_IAM_ROLE }}
-        AWS_ACCESS_KEY_ID: ${{ inputs.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ inputs.AWS_SECRET_ACCESS_KEY }}
-        AWS_SESSION_TOKEN: ${{ inputs.AWS_SESSION_TOKEN }}
-        CONTAINER_URL_IAC: ${{ inputs.CONTAINER_IAC_VERSION }}
-        CONTAINER_URL_DEPLOY: ${{ inputs.CONTAINER_DEPLOY_VERSION }}
-        CONTAINER_URL_DESTROY: ${{ inputs.CONTAINER_DESTROY_VERSION }}
-        CONTAINER_URL_UNIFIED: ${{ inputs.CONTAINER_UNIFIED_VERSION }}
-        FEATURES_TERRAFORM_MODULES: ${{ inputs.FEATURES_TERRAFORM_MODULES }}
-        CLIENT_ID: ${{ inputs.STK_CLIENT_ID }}
-        CLIENT_KEY: ${{ inputs.STK_CLIENT_SECRET }}
-        CLIENT_REALM: ${{ inputs.STK_REALM }}
-        BETA_CLI_ENVIRONMENT: ${{ inputs.BETA_CLI }}
+  - name: Build IaC and Plan Changes
+    id: build_iac_and_plan
+    uses: stack-spot/runtime-tasks-action@v2
+    if: steps.orchestrations.outputs.run_id != '' && steps.prepare_tasks.outputs.prepare_tasks != ''
+    with:
+      RUN_ID: ${{ steps.orchestrations.outputs.run_id }}
+      TASK_LIST: ${{ steps.prepare_tasks.outputs.prepare_tasks }}
+      TF_PARALLELISM: ${{ inputs.TERRAFORM_PARALLELISM }}
+      FEATURES_LEVEL_LOG: ${{ inputs.LEVEL_LOG }}
+      AWS_REGION: ${{ inputs.AWS_REGION }}
+      REPOSITORY_NAME: ${{ inputs.REPOSITORY_NAME }}
+      PATH_TO_MOUNT: ${{ inputs.PATH_TO_MOUNT }}
+      CHECKOUT_BRANCH: ${{ inputs.CHECKOUT_BRANCH }}
+      BASE_PATH_OUTPUT: ${{ inputs.BASE_PATH_OUTPUT }}
+      LOCALEXEC_ENABLED: ${{ inputs.LOCAL_EXEC_ENABLED }}
+      TF_LOG_PROVIDER: ${{ inputs.TF_LOG_PROVIDER }}
+      AWS_ROLE_ARN: ${{ inputs.AWS_IAM_ROLE }}
+      AWS_ACCESS_KEY_ID: ${{ inputs.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ inputs.AWS_SECRET_ACCESS_KEY }}
+      AWS_SESSION_TOKEN: ${{ inputs.AWS_SESSION_TOKEN }}
+      CONTAINER_URL_IAC: ${{ inputs.CONTAINER_IAC_VERSION }}
+      CONTAINER_URL_DEPLOY: ${{ inputs.CONTAINER_DEPLOY_VERSION }}
+      CONTAINER_URL_DESTROY: ${{ inputs.CONTAINER_DESTROY_VERSION }}
+      CONTAINER_URL_UNIFIED: ${{ inputs.CONTAINER_UNIFIED_VERSION }}
+      FEATURES_TERRAFORM_MODULES: ${{ inputs.FEATURES_TERRAFORM_MODULES }}
+      CLIENT_ID: ${{ inputs.STK_CLIENT_ID }}
+      CLIENT_KEY: ${{ inputs.STK_CLIENT_SECRET }}
+      CLIENT_REALM: ${{ inputs.STK_REALM }}
+      BETA_CLI_ENVIRONMENT: ${{ inputs.BETA_CLI }}
