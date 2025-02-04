@@ -198,7 +198,7 @@ runs:
 
   - name: Authentication + Get Tasks
     id: orchestrations
-    uses: stack-spot/runtime-manager-action@feat/remove-cli-action
+    uses: stack-spot/runtime-manager-action@v2.2
     env:
       LANG: C.UTF-8
       LANGUAGE: C.UTF-8
