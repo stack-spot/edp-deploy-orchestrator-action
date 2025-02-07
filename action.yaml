@@ -77,7 +77,7 @@ inputs:
   CHECKOUT_BRANCH:
     description: "Whether or not checkout is enabled."
     required: false
-    default: "false"
+    default: "true"
 
   REPOSITORY_NAME:
     description: "Git Repository Name."
@@ -198,7 +198,7 @@ runs:
 
   - name: Authentication + Get Tasks
     id: orchestrations
-    uses: stack-spot/runtime-manager-action@v2.2
+    uses: stack-spot/runtime-manager-action@v2.3
     env:
       LANG: C.UTF-8
       LANGUAGE: C.UTF-8
