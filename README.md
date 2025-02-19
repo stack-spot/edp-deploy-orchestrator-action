@@ -189,6 +189,7 @@ jobs:
 | `LOCAL_EXEC_ENABLED`        | Whether to allow execution of the `local-exec` command within Terraform.    | No       | `false`                                  | No                    |
 | `VERBOSE`                   | Whether to show extra logs during execution.                                | No       | `false`                                  | No                    |
 | `OPEN_API_PATH`             | The path to the OpenAPI/Swagger file within the repository.                 | No       | N/A                                      | No                    |
+| `EXCLUDE_FILES_PATH`        | Enter Path that should be deleted with 'rm -rf {{ inputs.PATH_TO_MOUNT }}/{{ inputs.EXCLUDE_FILES_PATH }}' | No       | N/A                                      | No                    |
 
 ## Outputs
 | Name          | Description                |
