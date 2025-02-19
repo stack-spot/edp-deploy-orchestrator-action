@@ -153,6 +153,11 @@ inputs:
     type: string
     default: default
 
+  EXCLUDE_FILES_PATH:
+    description: "Enter Path that should be deleted with 'rm -rf {{ inputs.PATH_TO_MOUNT }}/{{ inputs.EXCLUDE_FILES_PATH }}'"
+    required: false
+    default: ''
+
 outputs:
   APPLY_TASKS:
     description: "Post Plan Tasks."
@@ -267,6 +272,7 @@ runs:
       AWS_REGION: ${{ inputs.AWS_REGION }}
       REPOSITORY_NAME: ${{ inputs.REPOSITORY_NAME }}
       PATH_TO_MOUNT: ${{ inputs.PATH_TO_MOUNT }}
+      EXCLUDE_FILES_PATH: ${{ inputs.EXCLUDE_FILES_PATH }}
       CHECKOUT_BRANCH: ${{ inputs.CHECKOUT_BRANCH }}
       BASE_PATH_OUTPUT: ${{ inputs.BASE_PATH_OUTPUT }}
       LOCALEXEC_ENABLED: ${{ inputs.LOCAL_EXEC_ENABLED }}
