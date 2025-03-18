@@ -153,6 +153,11 @@ inputs:
     type: string
     default: default
 
+  EXCLUDE_FILES_PATH:
+    description: "Enter Path that should be deleted with 'rm -rf {{ inputs.PATH_TO_MOUNT }}/{{ inputs.EXCLUDE_FILES_PATH }}'"
+    required: false
+    default: ''
+
 outputs:
   APPLY_TASKS:
     description: "Post Plan Tasks."
@@ -257,7 +262,7 @@ runs:
 
   - name: Build IaC and Plan Changes
     id: build_iac_and_plan
-    uses: stack-spot/runtime-tasks-action@v2
+    uses: stack-spot/runtime-tasks-action@v2.1
     if: steps.orchestrations.outputs.run_id != '' && steps.prepare_tasks.outputs.prepare_tasks != ''
     with:
       RUN_ID: ${{ steps.orchestrations.outputs.run_id }}
@@ -267,6 +272,7 @@ runs:
       AWS_REGION: ${{ inputs.AWS_REGION }}
       REPOSITORY_NAME: ${{ inputs.REPOSITORY_NAME }}
       PATH_TO_MOUNT: ${{ inputs.PATH_TO_MOUNT }}
+      EXCLUDE_FILES_PATH: ${{ inputs.EXCLUDE_FILES_PATH }}
       CHECKOUT_BRANCH: ${{ inputs.CHECKOUT_BRANCH }}
       BASE_PATH_OUTPUT: ${{ inputs.BASE_PATH_OUTPUT }}
       LOCALEXEC_ENABLED: ${{ inputs.LOCAL_EXEC_ENABLED }}
