@@ -153,6 +153,11 @@ inputs:
     type: string
     default: default
 
+  SKIP_DEPLOY:
+    description: Allows for deploys to be skiiped if the manifesto has not changed.
+    required: false
+    default: False
+
 outputs:
   APPLY_TASKS:
     description: "Post Plan Tasks."
@@ -198,7 +203,7 @@ runs:
 
   - name: Authentication + Get Tasks
     id: orchestrations
-    uses: stack-spot/runtime-manager-action@v2.3
+    uses: stack-spot/runtime-manager-action@v3
     env:
       LANG: C.UTF-8
       LANGUAGE: C.UTF-8
@@ -222,6 +227,7 @@ runs:
       DYNAMIC_INPUTS: ${{ inputs.DYNAMIC_INPUTS }}
       WORKDIR: ${{ inputs.WORKDIR }}
       BETA_CLI_ENVIRONMENT: ${{ inputs.BETA_CLI }}
+      SKIP_DEPLOY: ${{ inputs.SKIP_DEPLOY }}
 
   - name: Fetch IaC and Plan Deployment Changes
     id: prepare_tasks
@@ -258,7 +264,7 @@ runs:
   - name: Build IaC and Plan Changes
     id: build_iac_and_plan
     uses: stack-spot/runtime-tasks-action@v2
-    if: steps.orchestrations.outputs.run_id != '' && steps.prepare_tasks.outputs.prepare_tasks != ''
+    if: steps.orchestrations.outputs.run_id != '' && steps.prepare_tasks.outputs.prepare_tasks != '[]'
     with:
       RUN_ID: ${{ steps.orchestrations.outputs.run_id }}
       TASK_LIST: ${{ steps.prepare_tasks.outputs.prepare_tasks }}
