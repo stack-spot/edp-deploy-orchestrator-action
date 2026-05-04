@@ -203,7 +203,7 @@ runs:
 
   - name: Authentication + Get Tasks
     id: orchestrations
-    uses: stack-spot/runtime-manager-action@v3
+    uses: stack-spot/runtime-manager-action@v3.1.2
     env:
       LANG: C.UTF-8
       LANGUAGE: C.UTF-8
